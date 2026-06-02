@@ -178,7 +178,7 @@ export default function ReportViewPage() {
 
           {/* AI Generated Summary Paragraph */}
           <p className="text-xs text-gray-700 leading-relaxed select-text bg-purple-50/20 border border-purple/5 p-4 rounded-md">
-            Integrating Google Cloud's generative-ai clinical models has successfully modernized the patient discharge summarization pipelines at <strong>Mayo Clinic</strong>. By extracting structured FHIR telemetry payloads and automating note drafts directly into the Epic Systems EHR, clinicians have observed a significant reduction in administrative documentation fatigue alongside improved bed turnover throughput.
+            Integrating Google Cloud&apos;s generative-ai clinical models has successfully modernized the patient discharge summarization pipelines at <strong>Mayo Clinic</strong>. By extracting structured FHIR telemetry payloads and automating note drafts directly into the Epic Systems EHR, clinicians have observed a significant reduction in administrative documentation fatigue alongside improved bed turnover throughput.
           </p>
 
           {/* Value Attribution Table */}
@@ -212,7 +212,7 @@ export default function ReportViewPage() {
         <section className="pb-2">
           <div className="bg-human-story border-l-[3px] border-l-purple rounded-r-lg p-6 flex flex-col gap-3 shadow-sm select-text">
             <p className="text-xs italic text-purple-800 leading-relaxed font-medium">
-              "The automated discharge summarization package saved our attending hospitalists an average of 1.2 hours per shift. These time savings were immediately translated back to direct patient care, significantly reducing end-of-shift charting backlogs across our entire pilot medicine ward."
+              &ldquo;The automated discharge summarization package saved our attending hospitalists an average of 1.2 hours per shift. These time savings were immediately translated back to direct patient care, significantly reducing end-of-shift charting backlogs across our entire pilot medicine ward.&rdquo;
             </p>
             <div className="flex flex-col text-[10px] text-purple font-semibold uppercase tracking-wider">
               <span>— Chief Medical Officer</span>
@@ -291,7 +291,7 @@ export default function ReportViewPage() {
               Google Healthcare & Life Sciences Group
             </span>
             <span className="text-xs font-semibold text-white/90 italic final">
-              "The next chapter starts here."
+              &ldquo;The next chapter starts here.&rdquo;
             </span>
           </div>
         </section>

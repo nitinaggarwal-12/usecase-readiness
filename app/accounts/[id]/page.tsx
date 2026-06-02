@@ -426,7 +426,7 @@ export default function AccountDetailPage() {
                 <span>Executive Summary</span>
               </span>
               <p className="text-gray-700">
-                Patient Discharge Summarization represents a high Business Value match (+85%) to Google Cloud's Med-LM architectures. Scopes can achieve 30% reduction in discharge notes turnaround times. The primary bottleneck is the outstanding HIPAA BAA signature which requires urgent C-suite engagement.
+                Patient Discharge Summarization represents a high Business Value match (+85%) to Google Cloud&apos;s Med-LM architectures. Scopes can achieve 30% reduction in discharge notes turnaround times. The primary bottleneck is the outstanding HIPAA BAA signature which requires urgent C-suite engagement.
               </p>
             </div>
           </div>

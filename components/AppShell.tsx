@@ -16,7 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() || "/";
   const router = useRouter();
   const [isRailOpen, setIsRailOpen] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(3); // Mock unread count for bell notification
+  const unreadCount = 3; // Mock unread count for bell notification
 
   const navItems: NavItem[] = [
     { name: "Dashboard", route: "/", icon: "fa-chart-line" },

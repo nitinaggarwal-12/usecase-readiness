@@ -2,10 +2,8 @@
 
 import React, { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
-import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
-import FlagCard from "@/components/ui/FlagCard";
 
 export default function StrategicPlanPage() {
   const router = useRouter();

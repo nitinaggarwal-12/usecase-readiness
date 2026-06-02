@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import MetricCard from "@/components/ui/MetricCard";
-import AccountCard, { AssessmentStatus, AssessmentStatus as Status } from "@/components/ui/AccountCard";
+import AccountCard, { AssessmentStatus as Status } from "@/components/ui/AccountCard";
 import FlagCard from "@/components/ui/FlagCard";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
@@ -304,7 +304,7 @@ export default function DashboardPage() {
       >
         <form onSubmit={handleCreateAccountSubmit} className="flex flex-col gap-4">
           <p className="text-[11px] text-gray-500 leading-relaxed">
-            Fill out basic details below to initialize this account's assessment journey (A through J):
+            Fill out basic details below to initialize this account&apos;s assessment journey (A through J):
           </p>
 
           <div className="flex flex-col gap-1 text-xs">

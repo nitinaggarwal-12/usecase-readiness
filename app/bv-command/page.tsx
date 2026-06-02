@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState } from "react";
-import { useRouter } from "next/navigation";
 import MetricCard from "@/components/ui/MetricCard";
 import FlagCard from "@/components/ui/FlagCard";
 import Badge from "@/components/ui/Badge";
@@ -9,7 +8,6 @@ import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 
 export default function BVCommandCenterPage() {
-  const router = useRouter();
   const { showToast } = useToast();
 
   // Modal state for escalation

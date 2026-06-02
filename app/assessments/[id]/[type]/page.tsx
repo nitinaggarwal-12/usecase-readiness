@@ -32,7 +32,6 @@ export default function AssessmentFlowPage() {
   // Look up account details
   const isStanford = accountId === "stanford-medicine";
   const accountName = isStanford ? "Stanford Medicine" : "Mayo Clinic";
-  const useCase = isStanford ? "Clinical Trial Co-Pilot" : "Patient Discharge Summarization";
 
   // Mock 8 Questions for Technical Readiness (Phase C)
   const questions: Question[] = [
