@@ -3,25 +3,105 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Colors */
+  --navy: #1C2B4A;
+  --navy-lt: #2D4070;
+  --blue: #185FA5;
+  --blue-dk: #0C447C;
+  --blue-50: #E6F1FB;
+  --green-400: #639922;
+  --green: #3B6D11;
+  --green-50: #EAF3DE;
+  --amber: #854F0B;
+  --amber-50: #FAEEDA;
+  --red: #A32D2D;
+  --red-50: #FCEBEB;
+  --purple: #3C3489;
+  --purple-50: #EEEDFE;
+  
+  --gray-900: #202124;
+  --gray-700: #5F6368;
+  --gray-500: #9AA0A6;
+  --gray-200: #E8EAED;
+  --gray-100: #F1F3F4;
+  --gray-50: #F8F9FA;
+  --white: #FFFFFF;
+  
+  --human-story: #FEF7E0;
+
+  /* Borders & Radii */
+  --r-sm: 6px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-full: 999px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Base Reset & Default Styles */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), sans-serif;
+  color: var(--gray-900);
+  background-color: var(--gray-100);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* Typography Helper Classes */
+.page-header h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gray-900);
+}
+
+.text-small {
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.text-caption {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--gray-500);
+}
+
+.text-micro {
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gray-700);
+}
+
+.metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+/* Shared Transitions and Micro-animations */
+.btn-transition {
+  transition: all 0.2s ease-in-out;
+}
+
+.hover-card-lift {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.hover-card-lift:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(32, 33, 36, 0.08);
 }
