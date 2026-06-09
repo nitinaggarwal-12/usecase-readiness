@@ -8,12 +8,13 @@ export type AssessmentStatus = "done" | "prog" | "blk" | "todo";
 interface AccountCardProps {
   orgName: string;
   useCase: string;
-  stage: "Pre-Sales" | "Production" | "At-Risk";
+  stage: "Pre-Sales" | "Production" | "At-Risk" | "FDE Nominated";
   score: number;
   isAtRisk?: boolean;
   // Array of 10 statuses representing assessments A-E and F-J
   assessments?: AssessmentStatus[]; 
   onClick?: () => void;
+  assessmentName?: string;
 }
 
 export default function AccountCard({
@@ -24,6 +25,7 @@ export default function AccountCard({
   isAtRisk = false,
   assessments = ["todo", "todo", "todo", "todo", "todo", "todo", "todo", "todo", "todo", "todo"],
   onClick,
+  assessmentName,
 }: AccountCardProps) {
   
   // Helper for initials avatar
@@ -61,7 +63,7 @@ export default function AccountCard({
       dotElements.push(
         <div
           key={`pre-${i}`}
-          className={`w-[20px] h-[6px] rounded-[3px] ${dotStyles[status]}`}
+          className={`w-[24px] h-[8px] rounded-[4px] ${dotStyles[status]}`}
           title={`Assessment ${String.fromCharCode(65 + i)}: ${status}`}
         />
       );
@@ -69,7 +71,7 @@ export default function AccountCard({
 
     // Gap spacer (6th element)
     dotElements.push(
-      <div key="gap" className="w-[8px] h-[6px] bg-transparent" />
+      <div key="gap" className="w-[10px] h-[8px] bg-transparent" />
     );
 
     // Post-sales dots (F to J)
@@ -78,7 +80,7 @@ export default function AccountCard({
       dotElements.push(
         <div
           key={`post-${i}`}
-          className={`w-[20px] h-[6px] rounded-[3px] ${dotStyles[status]}`}
+          className={`w-[24px] h-[8px] rounded-[4px] ${dotStyles[status]}`}
           title={`Assessment ${String.fromCharCode(65 + i)}: ${status}`}
         />
       );
@@ -90,7 +92,7 @@ export default function AccountCard({
   return (
     <div
       onClick={onClick}
-      className={`bg-white border rounded-lg p-4 hover-card-lift flex flex-col justify-between gap-4 cursor-pointer select-none h-[136px] ac-card ${
+      className={`bg-white border rounded-lg p-5 hover-card-lift flex flex-col justify-between gap-4 cursor-pointer select-none h-[148px] ac-card ${
         isAtRisk || stage === "At-Risk" ? "border-red/30 ring-1 ring-red/5" : "border-gray-200"
       }`}
     >
@@ -98,7 +100,7 @@ export default function AccountCard({
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           {/* Avatar circle */}
-          <div className={`w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold select-none flex-shrink-0 ${
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-sm font-bold select-none flex-shrink-0 ${
             isAtRisk || stage === "At-Risk" 
               ? "bg-red-50 text-red border border-red/10" 
               : "bg-blue-50 text-blue border border-blue/10"
@@ -107,14 +109,21 @@ export default function AccountCard({
           </div>
           
           <div className="flex flex-col leading-tight min-w-0">
-            <span className="text-xs font-bold text-gray-900 truncate">{orgName}</span>
-            <span className="text-[11px] text-gray-500 truncate mt-0.5">{useCase}</span>
+            <span className="text-sm font-extrabold text-gray-900 truncate">
+              {orgName}
+              {assessmentName && (
+                <span className="text-xs font-normal text-gray-400 ml-1">
+                  ({assessmentName})
+                </span>
+              )}
+            </span>
+            <span className="text-xs text-gray-500 truncate mt-0.5">{useCase}</span>
           </div>
         </div>
 
-        {/* Compact Score Dot (30px circle) */}
+        {/* Compact Score Dot (36px circle) */}
         <div
-          className={`w-[30px] h-[30px] rounded-full border-2 flex items-center justify-center text-[11px] font-bold score-dot flex-shrink-0 ${getScoreDotClass(
+          className={`w-[36px] h-[36px] rounded-full border-2 flex items-center justify-center text-xs font-bold score-dot flex-shrink-0 ${getScoreDotClass(
             score
           )}`}
           title={`Account overall readiness score: ${score}`}
@@ -127,7 +136,7 @@ export default function AccountCard({
       <div className="flex items-center justify-between gap-4 pt-2 border-t border-gray-50">
         {/* 11-dot Progress Indicator */}
         <div className="flex flex-col gap-1">
-          <span className="text-[9px] uppercase font-bold tracking-wider text-gray-500 select-none">
+          <span className="text-[10px] uppercase font-bold tracking-wider text-gray-500 select-none">
             Readiness Journey (A-J)
           </span>
           {renderProgressDots()}

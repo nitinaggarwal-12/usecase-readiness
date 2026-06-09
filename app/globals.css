@@ -14,6 +14,7 @@
   --green-50: #EAF3DE;
   --amber: #854F0B;
   --amber-50: #FAEEDA;
+  --amber-200: #FAC775;
   --red: #A32D2D;
   --red-50: #FCEBEB;
   --purple: #3C3489;
@@ -37,12 +38,26 @@
   --r-full: 999px;
 }
 
+html {
+  font-size: 16px;
+}
+@media (min-width: 1200px) {
+  html {
+    font-size: 17px;
+  }
+}
+@media (min-width: 1600px) {
+  html {
+    font-size: 18px;
+  }
+}
+
 /* Base Reset & Default Styles */
 body {
   font-family: var(--font-sans), sans-serif;
   color: var(--gray-900);
   background-color: var(--gray-100);
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
@@ -51,44 +66,44 @@ body {
 
 /* Typography Helper Classes */
 .page-header h1 {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 800;
   color: var(--gray-900);
 }
 
 .card-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: var(--gray-900);
 }
 
 .text-small {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 400;
 }
 
 .text-caption {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   color: var(--gray-500);
 }
 
 .text-micro {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
 }
 
 .section-title {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--gray-700);
 }
 
 .metric-value {
-  font-size: 24px;
-  font-weight: 700;
+  font-size: 30px;
+  font-weight: 800;
   color: var(--gray-900);
 }
 

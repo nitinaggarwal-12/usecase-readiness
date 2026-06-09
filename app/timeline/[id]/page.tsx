@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import MetricCard from "@/components/ui/MetricCard";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
+import { useDemo } from "@/context/DemoContext";
 
 type ScenarioType = "aggressive" | "base" | "conservative";
 
@@ -26,13 +27,134 @@ export default function TimelinePage() {
   const router = useRouter();
   const { id: accountId } = useParams() as { id: string };
   const { showToast } = useToast();
+  const { demoState, scenarios } = useDemo();
+  const isDemo = demoState.isActive;
+  const isStanford = accountId === "stanford-medicine";
+
+  const resolvedScenario = scenarios.find(
+    (s) => s.id === accountId || s.id.startsWith(accountId) || accountId.startsWith(s.id)
+  ) || demoState.selectedScenario || scenarios[0];
+
+  const formatAccountIdToName = (id: string) => {
+    if (!id) return "Mayo Clinic";
+    if (id === "stanford-medicine") return "Stanford Medicine";
+    if (id === "mayo-clinic") return "Mayo Clinic";
+    if (id === "cleveland-clinic") return "Cleveland Clinic";
+    return id
+      .split("-")
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const [clientName, setClientName] = useState(
+    isDemo ? resolvedScenario.account.name : formatAccountIdToName(accountId)
+  );
 
   // 1. Active scenario state
   const [scenario, setScenario] = useState<ScenarioType>("base");
+  const [dynamicGantt, setDynamicGantt] = useState<GanttItem[] | null>(null);
 
-  // Look up account names
-  const isStanford = accountId === "stanford-medicine";
-  const accountName = isStanford ? "Stanford Medicine" : "Mayo Clinic";
+  useEffect(() => {
+    const getPillarQuestionRange = (pillarId: number): number[] => {
+      switch (pillarId) {
+        case 1: return [1, 2, 3];
+        case 2: return [4, 5, 6];
+        case 3: return [7, 8, 9];
+        case 4: return [10, 11, 12];
+        case 5: return [13, 14, 15];
+        case 6: return [16, 17];
+        case 7: return [18, 19];
+        case 8: return [20, 21];
+        case 9: return [22, 23, 24];
+        case 10: return [25, 26];
+        case 11: return [27, 28, 29];
+        case 12: return [30, 31, 32, 33];
+        default: return [];
+      }
+    };
+
+    const savedMeta = sessionStorage.getItem("hcls_usecase_readiness_meta");
+    const savedAnswers = sessionStorage.getItem("hcls_usecase_readiness_answers");
+    if (savedMeta && savedAnswers && accountId) {
+      try {
+        const meta = JSON.parse(savedMeta);
+        const answers = JSON.parse(savedAnswers);
+        const slugId = meta.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        if (meta.activeAssessmentId === accountId || slugId === accountId) {
+          setClientName(meta.customerName);
+          const isPillarDone = (pId: number) => {
+            const range = getPillarQuestionRange(pId);
+            return range.every(qId => answers[qId] !== undefined && answers[qId] !== null);
+          };
+          
+          const legalDone = isPillarDone(7); // Compliance
+          const infraDone = isPillarDone(11) && isPillarDone(12); // Private Cloud & CMEK
+          const clinicalDone = isPillarDone(2); // Data Arch
+          const testingDone = isPillarDone(3) && isPillarDone(5); // Engineering & QA
+          
+          const streams: GanttItem[] = [
+            {
+              stream: "Legal & Compliance (BAA Contract)",
+              status: legalDone ? "done" : "todo",
+              color: legalDone ? "green" : "red",
+              metrics: {
+                aggressive: { left: 0, width: 15 },
+                base: { left: 0, width: 25 },
+                conservative: { left: 0, width: 30 },
+              },
+              milestoneLabel: "BAA Signed",
+              milestonePct: 25,
+            },
+            {
+              stream: "Infra Provisioning (VPC & KMS Keys)",
+              status: infraDone ? "done" : "prog",
+              color: infraDone ? "green" : "blue",
+              metrics: {
+                aggressive: { left: 15, width: 25 },
+                base: { left: 25, width: 30 },
+                conservative: { left: 30, width: 25 },
+              },
+              milestoneLabel: "Keys Active",
+              milestonePct: 55,
+            },
+            {
+              stream: "Clinical EHR Mapping (FHIR USCore)",
+              status: clinicalDone ? "done" : "todo",
+              color: clinicalDone ? "green" : "amber",
+              metrics: {
+                aggressive: { left: 40, width: 30 },
+                base: { left: 55, width: 25 },
+                conservative: { left: 55, width: 20 },
+              },
+              milestoneLabel: "API Mapped",
+              milestonePct: 75,
+            },
+            {
+              stream: "Local Sandbox Testing & Dry-runs",
+              status: testingDone ? "done" : "todo",
+              color: testingDone ? "green" : "amber",
+              metrics: {
+                aggressive: { left: 70, width: 30 },
+                base: { left: 80, width: 20 },
+                conservative: { left: 75, width: 25 },
+              },
+              milestoneLabel: "FDE Nominated",
+              milestonePct: 100,
+            },
+          ];
+          setDynamicGantt(streams);
+        }
+      } catch (e) {
+        console.error("Error loading dynamic Gantt data", e);
+      }
+    }
+  }, [accountId]);
+
+  const getDemoPath = (path: string) => {
+    return isDemo ? `/demo${path}` : path;
+  };
+
+  const accountName = clientName;
 
   // Dynamic deadlines and targets based on active scenario
   const scenarioMetadata = {
@@ -61,12 +183,20 @@ export default function TimelinePage() {
 
   const activeMeta = scenarioMetadata[scenario];
 
+  const baaStatus = isDemo 
+    ? (resolvedScenario.id === "northside-health" ? "blk" : "done")
+    : (isStanford ? "blk" : "done");
+     
+  const baaColor = isDemo
+    ? (resolvedScenario.id === "northside-health" ? "red" as const : "green" as const)
+    : (isStanford ? "red" as const : "green" as const);
+
   // 4 core work streams for the Gantt chart
   const ganttStreams: GanttItem[] = [
     {
       stream: "Legal & Compliance (BAA Contract)",
-      status: isStanford ? "blk" : "done",
-      color: isStanford ? "red" : "green",
+      status: baaStatus,
+      color: baaColor,
       metrics: {
         aggressive: { left: 0, width: 15 },
         base: { left: 0, width: 25 },
@@ -118,14 +248,16 @@ export default function TimelinePage() {
     showToast(`Timeline updated: ${type.toUpperCase()} mode activated.`, "info");
   };
 
+  const activeGantt = dynamicGantt || ganttStreams;
+
   return (
     <div className="flex flex-col gap-6">
       
       {/* STICKY ACTION BAR */}
-      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm sticky top-[52px] z-10 flex items-center justify-between gap-4 select-none">
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm sticky top-[-20px] md:top-[-24px] z-10 flex items-center justify-between gap-4 select-none">
         <button
-          onClick={() => router.push(`/strategic-plan/${accountId}`)}
-          className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-gray-900 font-semibold btn-transition"
+          onClick={() => router.push(getDemoPath(`/strategic-plan/${resolvedScenario.id}`)) }
+          className="flex items-center gap-1.5 text-xs text-gray-550 hover:text-gray-900 font-semibold btn-transition"
         >
           <i className="fa-solid fa-arrow-left"></i>
           <span>Back to Strategic Plan</span>
@@ -133,7 +265,7 @@ export default function TimelinePage() {
 
         <div className="flex items-center gap-2">
           <button
-            onClick={() => router.push(`/accounts/${accountId}`)}
+            onClick={() => router.push(getDemoPath(`/accounts/${resolvedScenario.id}`)) }
             className="border border-gray-200 hover:bg-gray-50 text-gray-750 text-xs font-semibold px-3.5 py-1.5 rounded btn-transition"
           >
             Exit to Account
@@ -227,7 +359,7 @@ export default function TimelinePage() {
             </div>
 
             {/* Gantt Stream Tracks */}
-            {ganttStreams.map((item, idx) => {
+            {activeGantt.map((item, idx) => {
               const activeMetrics = item.metrics[scenario];
               
               const fillColors = {

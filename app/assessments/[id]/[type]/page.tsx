@@ -8,131 +8,117 @@ import OptionCard from "@/components/ui/OptionCard";
 import ContextNote from "@/components/ui/ContextNote";
 import BlockerAlert from "@/components/ui/BlockerAlert";
 import { useToast } from "@/components/ui/Toast";
-
-interface Question {
-  id: number;
-  text: string;
-  context?: string;
-  options: { text: string; score: number; triggersBlocker?: boolean; blockerTitle?: string; blockerMsg?: string }[];
-  coachingTip: string;
-}
+import { useDemo } from "@/context/DemoContext";
+import { questionsMap, Question } from "@/lib/demo-data/questions";
 
 export default function AssessmentFlowPage() {
   const router = useRouter();
   const { id: accountId, type: assessmentType } = useParams() as { id: string; type: string };
   const { showToast } = useToast();
+  const { demoState, scenarios, saveCompletedAnswers } = useDemo();
+  const isDemo = demoState.isActive;
+
+  // Resolve demo scenario
+  const resolvedScenario = scenarios.find(
+    (s) => s.id === accountId || s.id.startsWith(accountId) || accountId.startsWith(s.id)
+  ) || demoState.selectedScenario || scenarios[0];
+
+  // Resolve questions for this phase (fall back to Phase C if not defined)
+  const questions: Question[] = questionsMap[assessmentType] || questionsMap.C;
+
+  const assessmentNames: Record<string, string> = {
+    A: "Strategic Vision & Objectives",
+    B: "Business Value & KPI Map",
+    C: "Technical Readiness & EHR",
+    D: "Data Governance & Security",
+    E: "FDE Qualification (Internal)",
+    F: "Solution Health Checklist",
+    G: "Value Realization Check",
+    H: "User Adoption & Change",
+    I: "Expansion Readiness Brief",
+    J: "Platform Maturity Report",
+  };
+  const assessmentName = assessmentNames[assessmentType] || "Clinical Readiness Discovery";
 
   // 1. States
   const [currentQIndex, setCurrentQIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<number[]>([]);
+  const [selectedIndices, setSelectedIndices] = useState<number[]>(() => {
+    if (isDemo && resolvedScenario) {
+      const key = `${resolvedScenario.id}_${assessmentType}`;
+      const saved = demoState.completedAnswers[key];
+      if (saved && saved.length === questions.length) {
+        return [...saved];
+      }
+    }
+    return new Array(questions.length).fill(-1);
+  });
+  const [selectedAnswer, setSelectedAnswer] = useState<number | null>(() => {
+    if (isDemo && resolvedScenario) {
+      const key = `${resolvedScenario.id}_${assessmentType}`;
+      const saved = demoState.completedAnswers[key];
+      if (saved && saved.length === questions.length && saved[0] !== undefined) {
+        return saved[0];
+      }
+    }
+    return null;
+  });
   const [isPresenterMode, setIsPresenterMode] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(() => {
+    if (isDemo && resolvedScenario) {
+      const score = resolvedScenario.scores[assessmentType];
+      return typeof score === "number" && score > 0;
+    }
+    return false;
+  });
+
+  // Keep selectedAnswer in sync with active question index
+  React.useEffect(() => {
+    const savedVal = selectedIndices[currentQIndex];
+    setSelectedAnswer(savedVal !== undefined && savedVal !== -1 ? savedVal : null);
+  }, [currentQIndex, selectedIndices]);
+
+  const getDemoPath = (path: string) => {
+    return isDemo ? `/demo${path}` : path;
+  };
 
   // Look up account details
   const isStanford = accountId === "stanford-medicine";
-  const accountName = isStanford ? "Stanford Medicine" : "Mayo Clinic";
-
-  // Mock 8 Questions for Technical Readiness (Phase C)
-  const questions: Question[] = [
-    {
-      id: 1,
-      text: "What is the primary data ingestion mechanism planned for patient feeds?",
-      context: "EPIC Systems EHR environment detected. Ingestion mechanism dictates security auditing requirements.",
-      options: [
-        { text: "Option A: Real-time FHIR APIs via authenticated secure HTTPS endpoints.", score: 100 },
-        { text: "Option B: Semi-automated batch processing using secure SFTP folders.", score: 80 },
-        { text: "Option C: Direct DB query pulls utilizing read-only SQL connections.", score: 60 },
-        { text: "Option D: Manual spreadsheet/CSV exports extracted periodically (no active pipe).", score: 35, triggersBlocker: true, blockerTitle: "Ingestion Blocker: Manual CSV Extracts", blockerMsg: "Manual imports do not support patient safety guidelines or real-time summarization loops. automated pathways are mandatory for production." }
-      ],
-      coachingTip: "Ask the customer's integration lead if their EPIC version supports bulk FHIR. Avoid SQL database queries directly to preserve production database performance."
-    },
-    {
-      id: 2,
-      text: "What authentication standard is configured for EHR system access?",
-      context: "HIPAA requirements dictate encrypted transport tokens for all connected interfaces.",
-      options: [
-        { text: "Option A: OAuth 2.0 with secure client credentials and token rotation.", score: 100 },
-        { text: "Option B: API Keys passed securely in HTTPS header values.", score: 80 },
-        { text: "Option C: Basic auth (username/password) over secure HTTPS links.", score: 50 },
-        { text: "Option D: No authentication protocol configured (unsecured internal network).", score: 15, triggersBlocker: true, blockerTitle: "Security Blocker: Missing Authentication", blockerMsg: "Connecting to clinical patient payloads without authenticated endpoints represents an immediate HIPAA security violation." }
-      ],
-      coachingTip: "Confirm they have set up an OAuth client inside their Epic App Orchard developer account before proceeding with production credentials."
-    },
-    {
-      id: 3,
-      text: "What is the estimated daily volume of summarization requests?",
-      options: [
-        { text: "Option A: Low volume (less than 1,000 transactions per day).", score: 100 },
-        { text: "Option B: Moderate volume (1,000 to 10,000 transactions per day).", score: 90 },
-        { text: "Option C: High volume (greater than 10,000 transactions per day).", score: 80 }
-      ],
-      coachingTip: "High volumes require setting up Google Cloud Pub/Sub pipelines and Upstash Redis caching to buffer burst requests during clinic shift handovers."
-    },
-    {
-      id: 4,
-      text: "Is clinical data encrypted at rest and in transit throughout the pipeline?",
-      options: [
-        { text: "Option A: Yes, fully encrypted using Customer-Managed Encryption Keys (CMEK).", score: 100 },
-        { text: "Option B: Yes, using default Google Cloud encryption keys.", score: 90 },
-        { text: "Option C: Partially encrypted (encrypted in transit only).", score: 60 },
-        { text: "Option D: No encryption configured.", score: 20, triggersBlocker: true, blockerTitle: "Data Protection Blocker: Missing Encryption", blockerMsg: "HIPAA rules require 256-bit encryption at rest and in transit for all protected health information (PHI) payloads." }
-      ],
-      coachingTip: "Confirm that CMEK keys are managed inside the customer's Google Cloud KMS project so they retain full revoke rights over their clinical datasets."
-    },
-    {
-      id: 5,
-      text: "Where will the LLM orchestration services be hosted?",
-      options: [
-        { text: "Option A: Fully managed Vertex AI serverless endpoints.", score: 100 },
-        { text: "Option B: Containerized microservices inside Google Kubernetes Engine (GKE).", score: 90 },
-        { text: "Option C: Secure virtual machines inside Compute Engine.", score: 75 },
-        { text: "Option D: Customer's on-premises servers (hybrid sync required).", score: 50 }
-      ],
-      coachingTip: "Vertex AI endpoints are strongly recommended for speed and serverless scaling. GKE is acceptable if they have existing strict Kubernetes compliance meshes."
-    },
-    {
-      id: 6,
-      text: "What clinical mapping standard is used for internal data models?",
-      options: [
-        { text: "Option A: Native HL7 FHIR resources (US Core Implementation Guide).", score: 100 },
-        { text: "Option B: OMOP Common Data Model standards.", score: 85 },
-        { text: "Option C: Custom proprietary relational data schemas.", score: 60 },
-        { text: "Option D: Unstructured free-text tables (no formal schema mappings).", score: 40 }
-      ],
-      coachingTip: "HL7 FHIR is the native standard for our Med-LM APIs. Custom schemas will require an additional preprocessing pipeline which increases costs."
-    },
-    {
-      id: 7,
-      text: "Is there a disaster recovery and replication protocol active?",
-      options: [
-        { text: "Option A: Yes, multi-region automated database replication and failover.", score: 100 },
-        { text: "Option B: Yes, dual-zone replication inside a single primary region.", score: 85 },
-        { text: "Option C: Basic backup cycles (nightly snapshots, no live failovers).", score: 60 },
-        { text: "Option D: No backup or replication protocol configured.", score: 30 }
-      ],
-      coachingTip: "Healthcare systems require a high-availability (HA) target setup. Make sure multi-region replication is active on cloud storage databases."
-    },
-    {
-      id: 8,
-      text: "What sandbox environments are available for pre-production integration testing?",
-      options: [
-        { text: "Option A: Dual sandboxes (EHR non-prod sandbox + Google Cloud staging).", score: 100 },
-        { text: "Option B: Single sandbox environment (EHR staging only).", score: 80 },
-        { text: "Option C: No formal sandboxes (testing must occur on dummy local records).", score: 50 },
-        { text: "Option D: Testing directly in the production environment.", score: 10, triggersBlocker: true, blockerTitle: "Environment Blocker: Live Production Testing", blockerMsg: "Testing unverified LLM pipelines directly against live clinical patients is strictly prohibited under healthcare safety rules." }
-      ],
-      coachingTip: "Request that the customer provisions a non-production EPIC sandbox credentials set (usually called 'TST' or 'DEC') before we finalize integration templates."
-    }
-  ];
+  const accountName = isDemo ? resolvedScenario.account.name : (isStanford ? "Stanford Medicine" : "Mayo Clinic");
 
   const activeQuestion = questions[currentQIndex];
-  const selectedOptionData = selectedAnswer !== null ? activeQuestion.options[selectedAnswer] : null;
+  const selectedOptionData = selectedAnswer !== null ? activeQuestion?.options[selectedAnswer] : null;
 
   // Calculate FDE nomination gate
   const calculateScoreAndGate = () => {
-    const totalScore = answers.reduce((a, b) => a + b, 0);
-    const avgScore = Math.round(totalScore / questions.length);
+    if (isDemo) {
+      const scoreVal = resolvedScenario.scores[assessmentType];
+      if (scoreVal && typeof scoreVal === "number" && scoreVal > 0) {
+        let gate: "GREEN" | "YELLOW" | "RED" = "GREEN";
+        if (scoreVal < 55) gate = "RED";
+        else if (scoreVal < 75) gate = "YELLOW";
+        return { score: scoreVal, gate };
+      }
+
+      if (resolvedScenario.id === "northside-health") {
+        return { score: 58, gate: "YELLOW" as const };
+      }
+      if (resolvedScenario.id === "pacific-medical") {
+        return { score: 89, gate: "GREEN" as const };
+      }
+      if (resolvedScenario.id === "midamerica-payer") {
+        return { score: 48, gate: "RED" as const };
+      }
+      if (resolvedScenario.id === "raphael-academic") {
+        return { score: 91, gate: "GREEN" as const };
+      }
+    }
+
+    const totalScore = selectedIndices.reduce((sum, optIdx, qIdx) => {
+      const q = questions[qIdx];
+      const opt = q?.options[optIdx];
+      return sum + (opt ? opt.score : 0);
+    }, 0);
+    const avgScore = questions.length > 0 ? Math.round(totalScore / questions.length) : 0;
     
     let gate: "GREEN" | "YELLOW" | "RED" = "GREEN";
     if (avgScore < 50) gate = "RED";
@@ -151,9 +137,9 @@ export default function AssessmentFlowPage() {
       return;
     }
 
-    const currentScore = activeQuestion.options[selectedAnswer].score;
-    const newAnswers = [...answers, currentScore];
-    setAnswers(newAnswers);
+    const newIndices = [...selectedIndices];
+    newIndices[currentQIndex] = selectedAnswer;
+    setSelectedIndices(newIndices);
 
     // Trigger blocker toast if answer has blocker
     if (selectedOptionData?.triggersBlocker) {
@@ -163,9 +149,9 @@ export default function AssessmentFlowPage() {
     if (currentQIndex < questions.length - 1) {
       // Advance question
       setCurrentQIndex(currentQIndex + 1);
-      setSelectedAnswer(null);
     } else {
-      // Finish questionnaire
+      // Finish questionnaire and save answers
+      saveCompletedAnswers(`${resolvedScenario.id}_${assessmentType}`, newIndices);
       setIsCompleted(true);
     }
   };
@@ -173,13 +159,8 @@ export default function AssessmentFlowPage() {
   const handleBack = () => {
     if (currentQIndex > 0) {
       setCurrentQIndex(currentQIndex - 1);
-      // Pop last answer
-      const newAnswers = [...answers];
-      newAnswers.pop();
-      setAnswers(newAnswers);
-      setSelectedAnswer(null);
     } else {
-      router.push(`/accounts/${accountId}`);
+      router.push(getDemoPath(`/accounts/${resolvedScenario.id}`));
     }
   };
 
@@ -214,7 +195,7 @@ export default function AssessmentFlowPage() {
     const activeGate = gateStyles[fdeGate];
 
     return (
-      <div className="max-w-[680px] mx-auto bg-white border border-gray-200 rounded-xl p-8 shadow-lg text-center flex flex-col items-center gap-6 animate-fade-in select-none">
+      <div className="w-full bg-white border border-gray-200 rounded-xl p-8 shadow-lg text-center flex flex-col items-center gap-6 animate-fade-in select-none">
         
         {/* Success Check Circle */}
         <div className="w-16 h-16 rounded-full bg-green-50 border border-green/20 flex items-center justify-center text-green select-none">
@@ -224,8 +205,11 @@ export default function AssessmentFlowPage() {
         {/* Headers */}
         <div className="flex flex-col gap-1">
           <h2 className="text-base font-extrabold text-gray-900">Assessment Discovery Completed!</h2>
-          <p className="text-xs text-gray-500">
-            Phase {assessmentType} questionnaire completed for {accountName}.
+          <p className="text-xs text-gray-700 font-semibold mt-0.5">
+            {assessmentName} (Phase {assessmentType})
+          </p>
+          <p className="text-[11px] text-gray-500">
+            Questionnaire completed for {accountName}.
           </p>
         </div>
 
@@ -248,7 +232,7 @@ export default function AssessmentFlowPage() {
           <button
             onClick={() => {
               showToast("FDE nomination dispatched successfully!", "success");
-              router.push(`/accounts/${accountId}`);
+              router.push(getDemoPath(`/accounts/${resolvedScenario.id}`));
             }}
             disabled={fdeGate !== "GREEN"}
             className={`text-xs font-semibold py-2.5 px-4 rounded-md btn-transition shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider ${
@@ -262,7 +246,7 @@ export default function AssessmentFlowPage() {
           </button>
 
           <button
-            onClick={() => router.push(`/reports/rep-v2`)}
+            onClick={() => router.push(getDemoPath(`/reports/${resolvedScenario.id}/${assessmentType}`))}
             className="bg-blue hover:bg-blue-dk text-white text-xs font-semibold py-2.5 px-4 rounded-md btn-transition shadow-sm flex items-center justify-center gap-1.5 uppercase tracking-wider"
           >
             <i className="fa-solid fa-file-lines"></i>
@@ -270,12 +254,100 @@ export default function AssessmentFlowPage() {
           </button>
 
           <button
-            onClick={() => router.push(`/accounts/${accountId}`)}
+            onClick={() => {
+              const key = `${resolvedScenario.id}_${assessmentType}`;
+              const saved = demoState.completedAnswers[key];
+              if (saved && saved.length === questions.length) {
+                setSelectedIndices([...saved]);
+                setSelectedAnswer(saved[0] !== undefined ? saved[0] : null);
+              } else {
+                setSelectedIndices(new Array(questions.length).fill(-1));
+                setSelectedAnswer(null);
+              }
+              setIsCompleted(false);
+              setCurrentQIndex(0);
+            }}
+            className="border border-blue/20 hover:bg-blue-50/30 text-blue text-xs font-semibold py-2.5 px-4 rounded-md btn-transition flex items-center justify-center gap-1.5 uppercase tracking-wider"
+          >
+            <i className="fa-solid fa-pen-to-square"></i>
+            <span>Edit Responses</span>
+          </button>
+
+          <button
+            onClick={() => router.push(getDemoPath(`/accounts/${resolvedScenario.id}`))}
             className="border border-gray-200 hover:bg-gray-50 text-gray-700 text-xs font-semibold py-2.5 px-4 rounded-md btn-transition flex items-center justify-center gap-1.5"
           >
             <span>Exit to Account Detail</span>
           </button>
         </div>
+
+        {/* Dynamic Questionnaire Responses Review */}
+        {(() => {
+          const key = `${resolvedScenario.id}_${assessmentType}`;
+          const savedIndices = demoState.completedAnswers[key] || selectedIndices;
+          if (!savedIndices || savedIndices.length === 0) return null;
+
+          return (
+            <div className="w-full text-left mt-6 pt-6 border-t border-gray-150 flex flex-col gap-4 select-text">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-1 select-none">
+                Discovery Questionnaire Responses Review
+              </h3>
+              <div className="flex flex-col gap-4 w-full">
+                {questions.map((q, qIdx) => {
+                  const chosenOptIdx = savedIndices[qIdx];
+                  const chosenOpt = q.options[chosenOptIdx];
+                  return (
+                    <div key={q.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50 flex flex-col gap-2 w-full text-xs">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <span className="font-bold text-gray-900 leading-snug">
+                          Question {q.id}: {q.text}
+                        </span>
+                        {chosenOpt && (
+                          <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded whitespace-nowrap ${
+                            chosenOpt.score >= 80 ? "bg-green-50 text-green" : chosenOpt.score >= 50 ? "bg-amber-50 text-amber" : "bg-red-50 text-red"
+                          }`}>
+                            Score: {chosenOpt.score}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {chosenOpt ? (
+                        <div className="flex items-start gap-2 text-gray-700 font-medium mt-1 leading-snug">
+                          <i className="fa-solid fa-circle-check text-green mt-0.5 flex-shrink-0 text-xs"></i>
+                          <span>{chosenOpt.text}</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 italic mt-1">No answer recorded</span>
+                      )}
+
+                      {/* Compliance Blocker Alert */}
+                      {chosenOpt?.triggersBlocker && (
+                        <div className="bg-red-50 border border-red/10 rounded-md p-3 text-[10px] text-red leading-normal flex items-start gap-2 mt-2">
+                          <i className="fa-solid fa-triangle-exclamation text-xs mt-0.5 flex-shrink-0"></i>
+                          <div className="flex flex-col">
+                            <strong className="font-bold uppercase tracking-wider text-[9px]">{chosenOpt.blockerTitle}</strong>
+                            <span className="mt-0.5">{chosenOpt.blockerMsg}</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Coaching Tip */}
+                      {q.coachingTip && (
+                        <div className="bg-blue-50/30 border border-dashed border-blue/20 rounded p-2.5 mt-2 flex gap-2 text-[10px] text-gray-600 italic">
+                          <i className="fa-solid fa-lightbulb text-blue flex-shrink-0 text-xs mt-0.5"></i>
+                          <div>
+                            <strong className="font-bold text-blue not-italic uppercase tracking-wider text-[8px] block mb-0.5">CE Internal Coaching Tip:</strong>
+                            {q.coachingTip}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })()}
 
       </div>
     );
@@ -291,7 +363,7 @@ export default function AssessmentFlowPage() {
             <span className="text-xs font-bold text-white">{accountName}</span>
             <div className="w-[3px] h-[3px] rounded-full bg-white/40"></div>
             <span className="text-[10px] text-white/70 uppercase font-bold tracking-wide">
-              Phase {assessmentType} Scoping
+              {assessmentName} (Phase {assessmentType})
             </span>
           </div>
           <span className="text-[10px] text-white/50 font-semibold mt-1.5">
@@ -321,7 +393,7 @@ export default function AssessmentFlowPage() {
           </button>
 
           <button
-            onClick={() => router.push(`/accounts/${accountId}`)}
+            onClick={() => router.push(getDemoPath(`/accounts/${resolvedScenario.id}`))}
             className="bg-navy-lt hover:bg-red text-white text-[10px] font-bold px-2.5 py-1.5 rounded border border-white/10 hover:border-red/20 btn-transition uppercase tracking-wider"
           >
             Exit
@@ -337,8 +409,8 @@ export default function AssessmentFlowPage() {
         />
       </div>
 
-      {/* 3. CENTERED QUESTION CARD (max-width 620px) */}
-      <div className="max-w-[620px] w-full mx-auto flex flex-col gap-5 mt-4 select-none">
+      {/* 3. CENTERED QUESTION CARD (max-width 4xl) */}
+      <div className="w-full flex flex-col gap-5 mt-4 select-none">
         
         {/* A. Context Note (shown conditionally if exists) */}
         {activeQuestion.context && (
@@ -391,7 +463,7 @@ export default function AssessmentFlowPage() {
       </div>
 
       {/* 4. FIXED BOTTOM NAV BAR */}
-      <div className="max-w-[620px] w-full mx-auto flex items-center justify-between select-none pt-4 border-t border-gray-200 mt-4">
+      <div className="w-full flex items-center justify-between select-none pt-4 border-t border-gray-200 mt-4">
         <button
           onClick={handleBack}
           className="border border-gray-200 hover:bg-gray-50 text-gray-750 text-xs font-semibold py-2 px-4 rounded-md btn-transition flex items-center gap-1.5"

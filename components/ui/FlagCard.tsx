@@ -45,12 +45,12 @@ export default function FlagCard({
     >
       {/* Left section: Icon + Text */}
       <div className="flex gap-3 items-start">
-        <div className="mt-0.5 text-sm flex-shrink-0">
+        <div className="mt-0.5 text-base flex-shrink-0">
           <i className={`fa-solid ${activeStyle.icon}`}></i>
         </div>
         <div className="flex flex-col leading-tight">
-          <span className="text-xs font-bold text-gray-900 mb-0.5">{title}</span>
-          <span className="text-[11px] text-gray-700">{message}</span>
+          <span className="text-sm font-bold text-gray-900 mb-0.5">{title}</span>
+          <span className="text-xs text-gray-700">{message}</span>
         </div>
       </div>
 

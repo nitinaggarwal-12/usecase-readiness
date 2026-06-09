@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Badge from "@/components/ui/Badge";
 import ProgressBar from "@/components/ui/ProgressBar";
 import { useToast } from "@/components/ui/Toast";
+import { useDemo } from "@/context/DemoContext";
+import { demoScenarios } from "@/lib/demo-data/scenarios";
 
 interface CustomerPortalPageProps {
   params: {
@@ -21,23 +23,92 @@ interface SimplifiedMilestone {
 
 export default function CustomerPortalPage({ params }: CustomerPortalPageProps) {
   const { showToast } = useToast();
+  const { demoState, scenarios } = useDemo();
+  const isDemo = demoState.isActive;
+
+  // Resolve demo scenario
+  const resolvedScenario = scenarios.find(
+    (s) => s.id === params.id || s.id.startsWith(params.id) || params.id.startsWith(s.id)
+  ) || demoState.selectedScenario || scenarios[0];
 
   // Mock organization details derived from slug/id
-  const orgName = params.id === "stanford-medicine" ? "Stanford Medicine" :
-                  params.id === "cleveland-clinic" ? "Cleveland Clinic" : "Mayo Clinic";
+  const orgName = isDemo ? resolvedScenario.account.name : (params.id === "stanford-medicine" ? "Stanford Medicine" :
+                  params.id === "cleveland-clinic" ? "Cleveland Clinic" : "Mayo Clinic");
                   
-  const primaryUseCase = params.id === "stanford-medicine" ? "Clinical Trial Co-Pilot" :
-                         params.id === "cleveland-clinic" ? "EHR Voice Dictation Integration" : "Patient Discharge Summarization";
+  const primaryUseCase = isDemo ? resolvedScenario.account.useCase : (params.id === "stanford-medicine" ? "Clinical Trial Co-Pilot" :
+                         params.id === "cleveland-clinic" ? "EHR Voice Dictation Integration" : "Patient Discharge Summarization");
 
   // Simplified client value statistics
-  const valueStats = [
+  const getDemoValueStats = (sc: typeof demoScenarios[0]) => {
+    if (sc.id === "northside-health") {
+      return [
+        { label: "Target Prior Auth Time", value: "4 Hrs", desc: "Reduced from standard 18 days" },
+        { label: "Annualized Value", value: "$1.60M", desc: "Projected value case range" },
+        { label: "Processing Volume", value: "280k", desc: "Prior auth cases per year" },
+      ];
+    }
+    if (sc.id === "pacific-medical") {
+      return [
+        { label: "Documentation Time Saved", value: "1.8 Hrs", desc: "Per physician per day saved" },
+        { label: "Annualized Savings", value: "$1.89M", desc: "Projected value case range" },
+        { label: "Staff Physicians", value: "800", desc: "Clinical practitioners staff count" },
+      ];
+    }
+    if (sc.id === "midamerica-payer") {
+      return [
+        { label: "Adoption Target", value: "70%", desc: "Current adoption stands at 22%" },
+        { label: "Annualized Value Case", value: "$1.10M", desc: "Net savings potential" },
+        { label: "Claims Processing Cycle", value: "24 Hrs", desc: "Reduced from 14 days baseline" },
+      ];
+    }
+    // St. Raphael
+    return [
+      { label: "Daily Cases Processed", value: "342", desc: "Prior auth reviews processed daily" },
+      { label: "Annualized Value Realized", value: "$2.40M", desc: "Confirmed cost savings benchmark" },
+      { label: "Physician Adoption Rate", value: "81%", desc: "Attending staff active usage" },
+    ];
+  };
+
+  const realValueStats = [
     { label: "Target Clinical Efficiency", value: "42%", desc: "Decrease in documentation drafting overhead" },
     { label: "Annualized Clinical Savings", value: "$1.80M", desc: "Estimated net savings across outpatient network" },
     { label: "Implementation Timeline", value: "14 Wks", desc: "Rapid secure deployment plan to pilot stage" },
   ];
 
+  const valueStats = isDemo ? getDemoValueStats(resolvedScenario) : realValueStats;
+
   // Client pending milestones
-  const [milestones, setMilestones] = useState<SimplifiedMilestone[]>([
+  const getDemoPortalMilestones = (sc: typeof demoScenarios[0]) => {
+    if (sc.id === "northside-health") {
+      return [
+        { id: "pm-1", title: "HIPAA Business Associate Agreement (BAA)", description: "Execute corporate HIPAA BAA. Scoping is complete but blocked pending legal BAA signature.", status: "Pending Client" as const, dueDate: "Blocked — Legal Scopes Done" },
+        { id: "pm-2", title: "Epic App Orchard Sandbox credentials mapping", description: "Credentials sandboxing set to developer sandbox only.", status: "In Progress" as const, dueDate: "Target: 4 Weeks" },
+        { id: "pm-3", title: "Google Cloud Landing Zones provisioning", description: "Configure regional EHR gateway setups.", status: "In Progress" as const, dueDate: "Target: 2 Weeks" },
+      ];
+    }
+    if (sc.id === "pacific-medical") {
+      return [
+        { id: "pm-1", title: "HIPAA Business Associate Agreement (BAA)", description: "Corporate HIPAA BAA signed off.", status: "Completed" as const, dueDate: "Completed" },
+        { id: "pm-2", title: "Epic App Orchard Integration Scopes", description: "Epic credential endpoints configured.", status: "Completed" as const, dueDate: "Completed" },
+        { id: "pm-3", title: "FDE Nomad Scoping", description: "Nominated for Fully Dedicated Engineer engagement.", status: "Completed" as const, dueDate: "Completed" },
+      ];
+    }
+    if (sc.id === "midamerica-payer") {
+      return [
+        { id: "pm-1", title: "Member Portal claims integration", description: "Enable claims denial AI on the member portal.", status: "Completed" as const, dueDate: "Completed" },
+        { id: "pm-2", title: "Member Portal Adoption Ramp", description: "Increase user portal adoption rate from 22% to 70% to meet value projections.", status: "Pending Client" as const, dueDate: "Action Needed" },
+      ];
+    }
+    // St. Raphael
+    return [
+      { id: "pm-1", title: "HIPAA Business Associate Agreement (BAA)", description: "Corporate HIPAA BAA signed off.", status: "Completed" as const, dueDate: "Completed" },
+      { id: "pm-2", title: "EHR Sandbox Configuration", description: "Epic connection configured.", status: "Completed" as const, dueDate: "Completed" },
+      { id: "pm-3", title: "Production Pilot Validation", description: "Validate prior auth processing models on live patients.", status: "Completed" as const, dueDate: "Completed" },
+      { id: "pm-4", title: "Confirmed Annual Savings realized", description: "Realized $2.4M cost savings across St. Raphael network.", status: "Completed" as const, dueDate: "Completed" },
+    ];
+  };
+
+  const realMilestones: SimplifiedMilestone[] = [
     {
       id: "m-1",
       title: "HIPAA Business Associate Agreement (BAA)",
@@ -66,7 +137,9 @@ export default function CustomerPortalPage({ params }: CustomerPortalPageProps) 
       status: "Pending Client",
       dueDate: "Target: July 01, 2026",
     },
-  ]);
+  ];
+
+  const [milestones, setMilestones] = useState<SimplifiedMilestone[]>(isDemo ? getDemoPortalMilestones(resolvedScenario) : realMilestones);
 
   // Toggle a client milestone status
   const handleToggleMilestone = (id: string) => {
@@ -94,7 +167,7 @@ export default function CustomerPortalPage({ params }: CustomerPortalPageProps) 
   const progressPercentage = Math.round(((completedCount + inProgressCount * 0.5) / milestones.length) * 100);
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto py-4">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto py-4">
       
       {/* Client Portal Header Banner */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm select-none flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

@@ -29,7 +29,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       
       {/* Page Title */}
       <div className="flex flex-col gap-1 select-none">

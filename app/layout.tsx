@@ -21,6 +21,7 @@ export const metadata: Metadata = {
 
 import AppShell from "@/components/AppShell";
 import { ToastProvider } from "@/components/ui/Toast";
+import { DemoProvider } from "@/context/DemoContext";
 
 export default function RootLayout({
   children,
@@ -30,6 +31,31 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} ${dmMono.variable}`}>
       <head>
+        {/* Error listener to catch Next.js chunk/asset loading failures and force page reload */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                window.addEventListener('error', function(event) {
+                  var target = event.target;
+                  if (target && (target.tagName === 'LINK' || target.tagName === 'SCRIPT')) {
+                    var url = target.src || target.href;
+                    if (url && url.indexOf('/_next/static/') !== -1) {
+                      console.warn('Next.js asset failed to load, forcing reload...', url);
+                      window.location.reload();
+                    }
+                  }
+                }, true);
+                window.addEventListener('unhandledrejection', function(event) {
+                  if (event.reason && (event.reason.name === 'ChunkLoadError' || (event.reason.message && event.reason.message.indexOf('Loading chunk') !== -1))) {
+                    console.warn('Next.js chunk failed to load, forcing reload...');
+                    window.location.reload();
+                  }
+                });
+              })();
+            `
+          }}
+        />
         {/* Font Awesome 6 CDN for icons as specified in requirements */}
         <link
           rel="stylesheet"
@@ -40,7 +66,9 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ToastProvider>
-          <AppShell>{children}</AppShell>
+          <DemoProvider>
+            <AppShell>{children}</AppShell>
+          </DemoProvider>
         </ToastProvider>
       </body>
     </html>

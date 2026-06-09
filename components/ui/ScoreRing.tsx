@@ -33,8 +33,8 @@ export default function ScoreRing({
   };
 
   const sizeStyles = {
-    default: "w-[72px] h-[72px] border-[5px]",
-    lg: "w-[88px] h-[88px] border-[6px]",
+    default: "w-[84px] h-[84px] border-[5px]",
+    lg: "w-[104px] h-[104px] border-[7px]",
   };
 
   return (
@@ -44,8 +44,8 @@ export default function ScoreRing({
       } ${colorStyles[activeColor] || colorStyles.blue} ${className}`}
     >
       <div className="flex flex-col items-center justify-center leading-none">
-        <span className={size === "lg" ? "text-lg" : "text-sm"}>{score}</span>
-        <span className="text-[9px] text-gray-500 font-semibold mt-0.5 opacity-85">/100</span>
+        <span className={size === "lg" ? "text-2xl" : "text-lg"}>{score}</span>
+        <span className="text-[10px] text-gray-500 font-semibold mt-0.5 opacity-85">/100</span>
       </div>
     </div>
   );

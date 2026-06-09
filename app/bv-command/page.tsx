@@ -1,14 +1,74 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import MetricCard from "@/components/ui/MetricCard";
 import FlagCard from "@/components/ui/FlagCard";
 import Badge from "@/components/ui/Badge";
 import { useToast } from "@/components/ui/Toast";
 import Modal from "@/components/ui/Modal";
 
-export default function BVCommandCenterPage() {
+function BVCommandCenterPageContent() {
   const { showToast } = useToast();
+
+  // Load active assessment from sessionStorage
+  const [activeAssessment, setActiveAssessment] = useState<{
+    customerName: string;
+    useCase: string;
+    score: number;
+  } | null>(null);
+
+  const searchParams = useSearchParams();
+  const urlId = searchParams ? searchParams.get("id") : null;
+
+  useEffect(() => {
+    if (urlId) {
+      const saved = localStorage.getItem("hcls_usecase_readiness_history");
+      if (saved) {
+        try {
+          const list: Array<{ id: string; customerName: string; segment?: string; useCase?: string; score?: number }> = JSON.parse(saved);
+          const match = list.find(item => {
+            const slug = item.customerName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+            return item.id === urlId || slug === urlId;
+          });
+          if (match) {
+            const scoreVal = typeof match.score === "number" ? match.score : 100;
+            setActiveAssessment({
+              customerName: match.customerName,
+              useCase: match.useCase || "Generative AI deployment Integration",
+              score: scoreVal
+            });
+            sessionStorage.setItem("hcls_usecase_readiness_meta", JSON.stringify({
+              customerName: match.customerName,
+              useCase: match.useCase || "Generative AI deployment Integration",
+              score: scoreVal,
+              activeAssessmentId: match.id,
+              showResults: true
+            }));
+            return;
+          }
+        } catch (e) {
+          console.error("Failed to parse history or find matching id", e);
+        }
+      }
+    }
+
+    const savedMeta = sessionStorage.getItem("hcls_usecase_readiness_meta");
+    if (savedMeta) {
+      try {
+        const meta = JSON.parse(savedMeta);
+        if (meta.customerName) {
+          setActiveAssessment({
+            customerName: meta.customerName,
+            useCase: meta.useCase || "Generative AI deployment Integration",
+            score: typeof meta.score === "number" ? meta.score : 100
+          });
+        }
+      } catch (e) {
+        console.error("Failed to parse readiness meta", e);
+      }
+    }
+  }, [urlId]);
 
   // Modal state for escalation
   const [isEscalateOpen, setIsEscalateOpen] = useState(false);
@@ -185,6 +245,32 @@ export default function BVCommandCenterPage() {
         {/* RIGHT COLUMN (1/3 width): Value-At-Risk Flags & Performance Bar Chart */}
         <div className="flex flex-col gap-6">
           
+          {/* Active assessment scoping highlight */}
+          {activeAssessment && (
+            <div className="bg-gradient-to-br from-blue-50/50 to-indigo-50/20 border border-blue-200 rounded-xl p-4 shadow-sm flex flex-col gap-2.5 select-none">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] uppercase font-bold tracking-wider text-blue bg-blue-50 px-2 py-0.5 rounded border border-blue-150">
+                  Active Scoped Assessment
+                </span>
+                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                  activeAssessment.score >= 75 
+                    ? "bg-green-50 text-green border-green-200" 
+                    : activeAssessment.score >= 51 
+                      ? "bg-amber-50 text-amber border-amber-200"
+                      : "bg-red-50 text-red border-red-200"
+                }`}>
+                  {activeAssessment.score}%
+                </span>
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <h4 className="text-xs font-bold text-gray-900">{activeAssessment.customerName}</h4>
+                <p className="text-[11px] text-gray-500 leading-snug font-medium italic mt-0.5">
+                  &ldquo;{activeAssessment.useCase}&rdquo;
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* A. Value-at-Risk Flags list */}
           <div className="flex flex-col gap-3 select-none">
             <h3 className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
@@ -193,6 +279,21 @@ export default function BVCommandCenterPage() {
             </h3>
 
             <div className="flex flex-col gap-3">
+              {activeAssessment && activeAssessment.score < 75 && (
+                <FlagCard
+                  title={`${activeAssessment.customerName} ($1.20M deal)`}
+                  message={`Scoping blockers detected on ${activeAssessment.useCase}. (Score: ${activeAssessment.score}%)`}
+                  variant="crit"
+                  actions={
+                    <button
+                      onClick={() => handleEscalateClick(activeAssessment.customerName, activeAssessment.score, "$1.20M")}
+                      className="bg-red text-white text-[10px] font-bold px-2.5 py-1 rounded hover:bg-red/90 btn-transition shadow-sm uppercase tracking-wider"
+                    >
+                      Escalate
+                    </button>
+                  }
+                />
+              )}
               <FlagCard
                 title="Stanford Medicine ($750k deal)"
                 message="Technical scoping blocked on active HIPAA BAA sign-off. (Score: 46)"
@@ -331,5 +432,13 @@ export default function BVCommandCenterPage() {
       </Modal>
 
     </div>
+  );
+}
+
+export default function BVCommandCenterPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-gray-500 text-xs">Loading Command Center...</div>}>
+      <BVCommandCenterPageContent />
+    </Suspense>
   );
 }

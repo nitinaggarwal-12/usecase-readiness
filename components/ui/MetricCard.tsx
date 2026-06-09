@@ -32,14 +32,14 @@ export default function MetricCard({
 
   return (
     <div
-      className={`bg-white border border-gray-200 rounded-lg p-4 flex flex-col justify-between hover-card-lift select-none h-[108px] ${className}`}
+      className={`bg-white border border-gray-200 rounded-lg p-5 flex flex-col justify-between hover-card-lift select-none h-[120px] ${className}`}
     >
       {/* Top Row: Title & Icon */}
       <div className="flex items-center justify-between gap-2">
         <span className="section-title truncate">{title}</span>
         {icon && (
-          <div className="w-7 h-7 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 flex-shrink-0">
-            <i className={`fa-solid ${icon} text-xs`}></i>
+          <div className="w-8 h-8 rounded-md bg-gray-50 flex items-center justify-center text-gray-500 flex-shrink-0">
+            <i className={`fa-solid ${icon} text-sm`}></i>
           </div>
         )}
       </div>
@@ -50,9 +50,9 @@ export default function MetricCard({
         
         {trend && (
           <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold select-none ${trendStyles[trendType]}`}
+            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-semibold select-none ${trendStyles[trendType]}`}
           >
-            <i className={`fa-solid ${trendIcons[trendType]} text-[9px]`}></i>
+            <i className={`fa-solid ${trendIcons[trendType]} text-[10px]`}></i>
             <span>{trend}</span>
           </span>
         )}
